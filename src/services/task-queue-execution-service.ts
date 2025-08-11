@@ -23,6 +23,7 @@ interface QueueExecution {
   currentStreamingId?: string;
   currentSessionId?: string;
   startedAt: string;
+  isExecutingTask: boolean; // Flag to prevent concurrent task execution
 }
 
 /**
@@ -192,7 +193,8 @@ export class TaskQueueExecutionService extends EventEmitter {
       queueId,
       queue: { ...queue, status: 'running' as const },
       currentTaskIndex: 0,
-      startedAt
+      startedAt,
+      isExecutingTask: false // Initialize the flag
     };
 
     this.runningExecutions.set(queueId, execution);
@@ -209,11 +211,23 @@ export class TaskQueueExecutionService extends EventEmitter {
   private async executeNextTask(execution: QueueExecution): Promise<void> {
     const { queueId, queue, currentTaskIndex } = execution;
 
+    // Prevent concurrent task execution for the same queue
+    if (execution.isExecutingTask) {
+      this.logger.debug('Task already executing for queue, skipping duplicate call', {
+        queueId,
+        currentTaskIndex
+      });
+      return;
+    }
+
     if (currentTaskIndex >= queue.tasks.length) {
       // All tasks completed
       await this.handleQueueCompletion(execution);
       return;
     }
+
+    // Set flag to prevent concurrent execution
+    execution.isExecutingTask = true;
 
     const currentTask = queue.tasks[currentTaskIndex];
     this.logger.info('Executing task', {
@@ -265,6 +279,8 @@ export class TaskQueueExecutionService extends EventEmitter {
 
     } catch (error) {
       this.logger.error('Failed to start task execution', error);
+      // Reset the flag on error
+      execution.isExecutingTask = false;
       await this.handleTaskError(execution.currentStreamingId || '', error instanceof Error ? error.message : String(error));
     }
   }
@@ -308,6 +324,15 @@ export class TaskQueueExecutionService extends EventEmitter {
       return;
     }
 
+    // Ensure we don't process the same completion multiple times
+    if (!execution.isExecutingTask) {
+      this.logger.debug('Task already completed or not executing', {
+        queueId: execution.queueId,
+        streamingId
+      });
+      return;
+    }
+
     const currentTask = execution.queue.tasks[execution.currentTaskIndex];
     const completedAt = new Date().toISOString();
 
@@ -317,6 +342,10 @@ export class TaskQueueExecutionService extends EventEmitter {
       success,
       taskIndex: execution.currentTaskIndex
     });
+
+    // Reset the executing flag
+    execution.isExecutingTask = false;
+    execution.currentStreamingId = undefined;
 
     if (success) {
       // Store the session ID for potential forking
@@ -347,8 +376,10 @@ export class TaskQueueExecutionService extends EventEmitter {
         );
       }
 
-      // Move to next task
+      // Move to next task only after the current one is fully completed
       execution.currentTaskIndex++;
+      
+      // Execute next task directly
       await this.executeNextTask(execution);
     } else {
       // Task failed, handle the failure
@@ -362,6 +393,10 @@ export class TaskQueueExecutionService extends EventEmitter {
       this.logger.debug('Received task error for non-queue session', { streamingId });
       return;
     }
+
+    // Reset the executing flag on error
+    execution.isExecutingTask = false;
+    execution.currentStreamingId = undefined;
 
     const currentTask = execution.queue.tasks[execution.currentTaskIndex];
     const completedAt = new Date().toISOString();
@@ -474,6 +509,9 @@ export class TaskQueueExecutionService extends EventEmitter {
         this.logger.warn('Failed to stop current task during cancellation', error);
       }
     }
+
+    // Reset execution flag
+    execution.isExecutingTask = false;
 
     // Update current task to cancelled if it's running
     const currentTask = execution.queue.tasks[execution.currentTaskIndex];
