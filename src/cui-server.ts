@@ -22,6 +22,7 @@ import { NotificationService } from './services/notification-service.js';
 import { WebPushService } from './services/web-push-service.js';
 import { geminiService } from './services/gemini-service.js';
 import { ClaudeRouterService } from './services/claude-router-service.js';
+import { TaskQueueService } from './services/task-queue-service.js';
 import { 
   StreamEvent,
   CUIError,
@@ -38,6 +39,7 @@ import { createWorkingDirectoriesRoutes } from './routes/working-directories.rou
 import { createConfigRoutes } from './routes/config.routes.js';
 import { createGeminiRoutes } from './routes/gemini.routes.js';
 import { createNotificationsRoutes } from './routes/notifications.routes.js';
+import { createTaskQueueRoutes } from './routes/task-queue.routes.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { requestLogger } from './middleware/request-logger.js';
 import { createCorsMiddleware } from './middleware/cors-setup.js';
@@ -68,6 +70,7 @@ export class CUIServer {
   private notificationService: NotificationService;
   private webPushService: WebPushService;
   private routerService?: ClaudeRouterService;
+  private taskQueueService: TaskQueueService;
   private logger: Logger;
   private port: number;
   private host: string;
@@ -110,6 +113,7 @@ export class CUIServer {
     this.workingDirectoriesService = new WorkingDirectoriesService(this.historyReader, this.logger);
     this.notificationService = new NotificationService();
     this.webPushService = WebPushService.getInstance();
+    this.taskQueueService = TaskQueueService.getInstance();
     
     // Wire up notification service
     this.processManager.setNotificationService(this.notificationService);
@@ -162,6 +166,11 @@ export class CUIServer {
       this.logger.debug('Initializing session info service');
       await this.sessionInfoService.initialize();
       this.logger.debug('Session info service initialized successfully');
+
+      // Initialize task queue service
+      this.logger.debug('Initializing task queue service');
+      await this.taskQueueService.initialize();
+      this.logger.debug('Task queue service initialized successfully');
 
       this.logger.debug('Initializing Gemini service');
       await geminiService.initialize();
@@ -489,6 +498,7 @@ export class CUIServer {
     this.app.use('/api/working-directories', createWorkingDirectoriesRoutes(this.workingDirectoriesService));
     this.app.use('/api/config', createConfigRoutes(this.configService));
     this.app.use('/api/gemini', createGeminiRoutes(geminiService));
+    this.app.use('/api/task-queues', createTaskQueueRoutes(this.taskQueueService));
     
     // React Router catch-all - must be after all API routes
     const isDev = process.env.NODE_ENV === 'development';

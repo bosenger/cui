@@ -333,5 +333,111 @@ export interface GeminiSummarizeResponse {
   keypoints: string[];
 }
 
+// Task Queue types
+export interface Task {
+  id: string;                    // UUID for the task
+  queueId: string;              // ID of the queue this task belongs to
+  title: string;                // First line of the markdown content
+  content: string;              // Full markdown content including title
+  type: 'new' | 'fork';         // Execution type
+  order: number;                // Order within the queue
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  sessionId?: string;           // Claude session ID when running/completed
+  streamingId?: string;         // CUI streaming ID when running
+  error?: string;               // Error message if failed
+  createdAt: string;            // ISO timestamp
+  updatedAt: string;            // ISO timestamp
+  startedAt?: string;           // ISO timestamp when execution started
+  completedAt?: string;         // ISO timestamp when execution finished
+}
+
+export interface TaskQueue {
+  id: string;                   // UUID for the queue
+  name: string;                 // Queue name
+  projectPath: string;          // Working directory/repo root
+  description?: string;         // Optional description
+  status: 'draft' | 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  currentTaskIndex: number;     // Index of currently executing task (0-based)
+  tasks: Task[];               // Tasks in the queue (ordered)
+  createdAt: string;           // ISO timestamp
+  updatedAt: string;           // ISO timestamp
+  startedAt?: string;          // ISO timestamp when execution started
+  completedAt?: string;        // ISO timestamp when execution finished
+}
+
+export interface TaskQueueSummary {
+  id: string;
+  name: string;
+  projectPath: string;
+  description?: string;
+  status: TaskQueue['status'];
+  taskCount: number;
+  completedTasks: number;
+  failedTasks: number;
+  createdAt: string;
+  updatedAt: string;
+  startedAt?: string;
+  completedAt?: string;
+}
+
+// API Request/Response types for Task Queues
+export interface CreateTaskQueueRequest {
+  name: string;
+  projectPath: string;
+  description?: string;
+}
+
+export interface UpdateTaskQueueRequest {
+  name?: string;
+  description?: string;
+}
+
+export interface CreateTaskRequest {
+  title: string;
+  content: string;
+  type: 'new' | 'fork';
+  order?: number;  // If not provided, will be appended to end
+}
+
+export interface UpdateTaskRequest {
+  title?: string;
+  content?: string;
+  type?: 'new' | 'fork';
+}
+
+export interface ReorderTasksRequest {
+  taskIds: string[];  // Array of task IDs in the new order
+}
+
+export interface ExecuteTaskQueueResponse {
+  queueId: string;
+  status: 'started';
+  message: string;
+}
+
+export interface TaskQueueStatusResponse {
+  queue: TaskQueue;
+  currentTask?: Task;
+  progress: {
+    completed: number;
+    total: number;
+    percentage: number;
+  };
+}
+
+export interface TaskQueueListQuery {
+  projectPath?: string;
+  status?: TaskQueue['status'];
+  limit?: number;
+  offset?: number;
+  sortBy?: 'created' | 'updated' | 'name';
+  order?: 'asc' | 'desc';
+}
+
+export interface TaskQueueListResponse {
+  queues: TaskQueueSummary[];
+  total: number;
+}
+
 export * from './config.js';
 export * from './router-config.js';
