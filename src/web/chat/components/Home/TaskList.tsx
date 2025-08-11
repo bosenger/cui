@@ -11,7 +11,7 @@ interface TaskListProps {
   loadingMore: boolean;
   hasMore: boolean;
   error: string | null;
-  activeTab: 'tasks' | 'history' | 'archive';
+  activeTab: 'tasks' | 'history' | 'archive' | 'queues';
   onLoadMore: (filters?: {
     hasContinuation?: boolean;
     archived?: boolean;
@@ -35,7 +35,7 @@ export function TaskList({
   const [renamingSessionId, setRenamingSessionId] = React.useState<string | null>(null);
 
   // Get filter parameters based on active tab
-  const getFiltersForTab = (tab: 'tasks' | 'history' | 'archive') => {
+  const getFiltersForTab = (tab: 'tasks' | 'history' | 'archive' | 'queues') => {
     switch (tab) {
       case 'tasks':
         return { archived: false, hasContinuation: false };
@@ -43,6 +43,8 @@ export function TaskList({
         return { archived: false, hasContinuation: true };
       case 'archive':
         return { archived: true };
+      case 'queues':
+        return {}; // Not used for queues
       default:
         return {};
     }

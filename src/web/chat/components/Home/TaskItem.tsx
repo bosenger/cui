@@ -24,10 +24,13 @@ interface TaskItemProps {
   liveStatus?: StreamStatus;
   isArchived?: boolean;
   isPinned?: boolean;
+  isRenaming?: boolean;
   onClick: () => void;
   onCancel?: () => void;
   onArchive?: () => void;
   onUnarchive?: () => void;
+  onStartRename?: () => void;
+  onCancelRename?: () => void;
   onNameUpdate?: () => void;
   onPinToggle?: (isPinned: boolean) => void;
 }

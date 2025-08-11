@@ -6,6 +6,7 @@ import { Header } from './Header';
 import { Composer, ComposerRef } from '@/web/chat/components/Composer';
 import { TaskTabs } from './TaskTabs';
 import { TaskList } from './TaskList';
+import { TaskQueueList } from './TaskQueueList';
 
 export function Home() {
   const navigate = useNavigate();
@@ -20,10 +21,29 @@ export function Home() {
     recentDirectories,
     getMostRecentWorkingDirectory 
   } = useConversations();
-  const [activeTab, setActiveTab] = useState<'tasks' | 'history' | 'archive'>('tasks');
+  
+  // Get initial tab from URL params if present
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialTab = (urlParams.get('tab') as 'tasks' | 'history' | 'archive' | 'queues') || 'tasks';
+  
+  const [activeTab, setActiveTab] = useState<'tasks' | 'history' | 'archive' | 'queues'>(initialTab);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const conversationCountRef = useRef(conversations.length);
   const composerRef = useRef<ComposerRef>(null);
+
+  // Handle tab changes and update URL
+  const handleTabChange = (newTab: 'tasks' | 'history' | 'archive' | 'queues') => {
+    setActiveTab(newTab);
+    
+    // Update URL to reflect current tab
+    const url = new URL(window.location.href);
+    if (newTab === 'tasks') {
+      url.searchParams.delete('tab');
+    } else {
+      url.searchParams.set('tab', newTab);
+    }
+    window.history.replaceState({}, '', url.toString());
+  };
 
   // Update the ref whenever conversations change
   useEffect(() => {
@@ -31,7 +51,7 @@ export function Home() {
   }, [conversations.length]);
 
   // Get filter parameters based on active tab
-  const getFiltersForTab = (tab: 'tasks' | 'history' | 'archive') => {
+  const getFiltersForTab = (tab: 'tasks' | 'history' | 'archive' | 'queues') => {
     switch (tab) {
       case 'tasks':
         return { archived: false, hasContinuation: false };
@@ -39,6 +59,8 @@ export function Home() {
         return { hasContinuation: true };
       case 'archive':
         return { archived: true, hasContinuation: false };
+      case 'queues':
+        return {}; // Queues will have their own data loading
       default:
         return {};
     }
@@ -62,21 +84,23 @@ export function Home() {
 
   // Reload conversations when tab changes
   useEffect(() => {
-    loadConversations(undefined, getFiltersForTab(activeTab));
+    if (activeTab !== 'queues') {
+      loadConversations(undefined, getFiltersForTab(activeTab));
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // Auto-refresh on focus
   useEffect(() => {
     const handleFocus = () => {
-      // Only refresh if we have loaded conversations before
-      if (conversationCountRef.current > 0) {
+      // Only refresh if we have loaded conversations before and not on queues tab
+      if (conversationCountRef.current > 0 && activeTab !== 'queues') {
         loadConversations(conversationCountRef.current, getFiltersForTab(activeTab));
       }
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && conversationCountRef.current > 0) {
+      if (document.visibilityState === 'visible' && conversationCountRef.current > 0 && activeTab !== 'queues') {
         loadConversations(conversationCountRef.current, getFiltersForTab(activeTab));
       }
     };
@@ -97,12 +121,12 @@ export function Home() {
     ? conversations[0].projectPath 
     : undefined;
 
-  const handleComposerSubmit = async (text: string, workingDirectory: string, model: string, permissionMode: string) => {
+  const handleComposerSubmit = async (text: string, workingDirectory?: string, model?: string, permissionMode?: string) => {
     setIsSubmitting(true);
     
     try {
       const response = await api.startConversation({
-        workingDirectory,
+        workingDirectory: workingDirectory || recentWorkingDirectory || process.cwd(),
         initialPrompt: text,
         model: model === 'default' ? undefined : model,
         permissionMode: permissionMode === 'default' ? undefined : permissionMode,
@@ -184,19 +208,27 @@ export function Home() {
 
               <TaskTabs 
                 activeTab={activeTab}
-                onTabChange={setActiveTab}
+                onTabChange={handleTabChange}
               />
             </div>
 
-            <TaskList 
-              conversations={conversations}
-              loading={loading}
-              loadingMore={loadingMore}
-              hasMore={hasMore}
-              error={error}
-              activeTab={activeTab}
-              onLoadMore={(filters) => loadMoreConversations(filters)}
-            />
+            {/* Conditional Content Based on Active Tab */}
+            {activeTab === 'queues' ? (
+              <TaskQueueList 
+                recentDirectories={recentDirectories}
+                getMostRecentWorkingDirectory={getMostRecentWorkingDirectory}
+              />
+            ) : (
+              <TaskList 
+                conversations={conversations}
+                loading={loading}
+                loadingMore={loadingMore}
+                hasMore={hasMore}
+                error={error}
+                activeTab={activeTab}
+                onLoadMore={(filters) => loadMoreConversations(filters)}
+              />
+            )}
           </div>
         </div>
       </main>
