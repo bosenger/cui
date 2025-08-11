@@ -23,6 +23,7 @@ import { WebPushService } from './services/web-push-service.js';
 import { geminiService } from './services/gemini-service.js';
 import { ClaudeRouterService } from './services/claude-router-service.js';
 import { TaskQueueService } from './services/task-queue-service.js';
+import { TaskQueueExecutionService } from './services/task-queue-execution-service.js';
 import { 
   StreamEvent,
   CUIError,
@@ -71,6 +72,7 @@ export class CUIServer {
   private webPushService: WebPushService;
   private routerService?: ClaudeRouterService;
   private taskQueueService: TaskQueueService;
+  private taskQueueExecutionService?: TaskQueueExecutionService;
   private logger: Logger;
   private port: number;
   private host: string;
@@ -171,6 +173,17 @@ export class CUIServer {
       this.logger.debug('Initializing task queue service');
       await this.taskQueueService.initialize();
       this.logger.debug('Task queue service initialized successfully');
+
+      // Initialize task queue execution service
+      this.logger.debug('Initializing task queue execution service');
+      this.taskQueueExecutionService = TaskQueueExecutionService.getInstance(
+        this.taskQueueService,
+        this.processManager,
+        this.streamManager,
+        this.permissionTracker,
+        this.conversationStatusManager
+      );
+      this.logger.debug('Task queue execution service initialized successfully');
 
       this.logger.debug('Initializing Gemini service');
       await geminiService.initialize();
@@ -498,7 +511,7 @@ export class CUIServer {
     this.app.use('/api/working-directories', createWorkingDirectoriesRoutes(this.workingDirectoriesService));
     this.app.use('/api/config', createConfigRoutes(this.configService));
     this.app.use('/api/gemini', createGeminiRoutes(geminiService));
-    this.app.use('/api/task-queues', createTaskQueueRoutes(this.taskQueueService));
+    this.app.use('/api/task-queues', createTaskQueueRoutes(this.taskQueueService, this.taskQueueExecutionService));
     
     // React Router catch-all - must be after all API routes
     const isDev = process.env.NODE_ENV === 'development';

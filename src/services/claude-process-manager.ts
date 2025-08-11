@@ -1,5 +1,5 @@
 import { ChildProcess, spawn } from 'child_process';
-import { ConversationConfig, CUIError, SystemInitMessage, StreamEvent } from '@/types/index.js';
+import { ConversationConfig, CUIError, SystemInitMessage, StreamEvent, ConversationMessage } from '@/types/index.js';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { existsSync, readFileSync } from 'fs';
@@ -265,6 +265,21 @@ export class ClaudeProcessManager extends EventEmitter {
   isSessionActive(streamingId: string): boolean {
     const active = this.processes.has(streamingId);
     return active;
+  }
+
+  /**
+   * Get conversation history for a session (used for forking tasks)
+   */
+  async getConversationHistory(sessionId: string): Promise<ConversationMessage[]> {
+    try {
+      return await this.historyReader.fetchConversation(sessionId);
+    } catch (error) {
+      this.logger.warn('Failed to fetch conversation history for forking', {
+        sessionId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
   }
 
   /**

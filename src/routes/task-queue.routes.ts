@@ -16,9 +16,13 @@ import {
 } from '@/types/index.js';
 import { RequestWithRequestId } from '@/types/express.js';
 import { TaskQueueService } from '@/services/task-queue-service.js';
+import { TaskQueueExecutionService } from '@/services/task-queue-execution-service.js';
 import { createLogger } from '@/services/logger.js';
 
-export function createTaskQueueRoutes(taskQueueService: TaskQueueService): Router {
+export function createTaskQueueRoutes(
+  taskQueueService: TaskQueueService, 
+  executionService?: TaskQueueExecutionService
+): Router {
   const router = Router();
   const logger = createLogger('TaskQueueRoutes');
 
@@ -222,9 +226,14 @@ export function createTaskQueueRoutes(taskQueueService: TaskQueueService): Route
       if (queue.tasks.length === 0) {
         throw new CUIError('QUEUE_EMPTY', 'Cannot execute empty task queue', 400);
       }
+
+      if (!executionService) {
+        throw new CUIError('EXECUTION_SERVICE_UNAVAILABLE', 'Task queue execution service is not available', 500);
+      }
       
-      // TODO: Implement actual execution logic in a separate service
-      // For now, just return success response
+      // Start queue execution
+      await executionService.executeQueue(queueId);
+      
       const response: ExecuteTaskQueueResponse = {
         queueId,
         status: 'started',
@@ -264,9 +273,13 @@ export function createTaskQueueRoutes(taskQueueService: TaskQueueService): Route
       if (queue.status !== 'running') {
         throw new CUIError('QUEUE_NOT_RUNNING', 'Task queue is not running', 400);
       }
+
+      if (!executionService) {
+        throw new CUIError('EXECUTION_SERVICE_UNAVAILABLE', 'Task queue execution service is not available', 500);
+      }
       
-      // TODO: Implement actual cancellation logic
-      await taskQueueService.updateQueueStatus(queueId, 'cancelled');
+      // Cancel queue execution
+      await executionService.cancelQueue(queueId);
       
       logger.info('Task queue execution cancelled', {
         requestId,
