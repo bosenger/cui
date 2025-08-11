@@ -198,28 +198,9 @@ export function TaskQueueTaskList({
               e.preventDefault();
               e.stopPropagation();
 
-              // 详细的调试日志
-              console.log("=== 任务点击调试信息 ===");
-              console.log("任务ID:", task.id);
-              console.log("任务标题:", task.title);
-              console.log("任务状态:", task.status);
-              console.log("任务sessionId:", task.sessionId);
-              console.log("sessionId类型:", typeof task.sessionId);
-              console.log(
-                "sessionId是否为null/undefined:",
-                task.sessionId == null
-              );
-              console.log("onTaskClick函数:", onTaskClick);
-              console.log("onTaskClick是否存在:", !!onTaskClick);
-              console.log("完整任务对象:", task);
-              console.log("========================");
-
               // 总是调用onTaskClick，让父组件决定如何处理
               if (onTaskClick) {
-                console.log("✅ 调用onTaskClick，sessionId:", task.sessionId);
                 onTaskClick(task);
-              } else {
-                console.log("❌ onTaskClick函数不存在");
               }
             }}
           >
@@ -275,7 +256,7 @@ export function TaskQueueTaskList({
                   </div>
 
                   {/* Task Metadata */}
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span>
                       Created {new Date(task.createdAt).toLocaleDateString()}
                     </span>
@@ -287,11 +268,6 @@ export function TaskQueueTaskList({
                     {task.completedAt && (
                       <span>
                         Completed {new Date(task.completedAt).toLocaleString()}
-                      </span>
-                    )}
-                    {task.sessionId && (
-                      <span className="text-blue-600">
-                        Session: {task.sessionId.slice(0, 8)}...
                       </span>
                     )}
                   </div>
