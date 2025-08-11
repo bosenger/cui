@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Play, Square, Plus, X } from "lucide-react";
+import { ArrowLeft, Play, Square, Plus, X, RefreshCw } from "lucide-react";
 import { Button } from "@/web/chat/components/ui/button";
 import {
   Tooltip,
@@ -24,6 +24,7 @@ export function TaskQueueView() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [showTaskEditor, setShowTaskEditor] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [iframeKey, setIframeKey] = useState(0);
 
   const loadQueue = async () => {
     if (!queueId) return;
@@ -186,6 +187,10 @@ export function TaskQueueView() {
 
   const handleCloseTaskDetails = () => {
     setSelectedTask(null);
+  };
+
+  const handleRefreshIframe = () => {
+    setIframeKey((prev) => prev + 1);
   };
 
   const handleDeleteTask = async (taskId: string) => {
@@ -375,20 +380,44 @@ export function TaskQueueView() {
                   {selectedTask.title}
                 </span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCloseTaskDetails}
-                className="cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+
+              <div className="flex items-center gap-1">
+                {selectedTask.sessionId && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRefreshIframe}
+                          className="cursor-pointer"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>刷新任务详情</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCloseTaskDetails}
+                  className="cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Task Conversation */}
             {selectedTask.sessionId ? (
               <div className="flex-1 overflow-hidden">
                 <iframe
+                  key={iframeKey}
                   src={`http://localhost:3001/c/${selectedTask.sessionId}`}
                   className="w-full h-full border-0"
                   title={`Task Details - ${selectedTask.title}`}
