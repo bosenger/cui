@@ -204,22 +204,18 @@ export function TaskQueueTaskList({
               }
             }}
           >
-            {/* Task Index and Drag Handle */}
-            <div className="absolute left-1 top-1 flex items-center gap-1">
-              <span className="text-xs text-muted-foreground font-mono w-6 text-center">
-                {index + 1}
-              </span>
-              {canEdit && (
-                <GripVertical className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing" />
-              )}
-            </div>
-
             {/* Main Content */}
-            <div className="ml-8">
+            <div className="">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   {/* Title and Status */}
-                  <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs text-muted-foreground font-mono w-6 text-center bg-accent rounded ">
+                      {index + 1}
+                    </span>
+                    {canEdit && (
+                      <GripVertical className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing" />
+                    )}
                     {getStatusIcon(task.status)}
                     <h3 className="text-lg font-semibold text-foreground truncate">
                       {task.title}
@@ -251,7 +247,7 @@ export function TaskQueueTaskList({
                   </div>
 
                   {/* Content Preview */}
-                  <div className="text-sm text-muted-foreground mb-3 line-clamp-3 whitespace-pre-wrap">
+                  <div className="text-sm text-muted-foreground mb-2 line-clamp-3 whitespace-pre-wrap">
                     {formatMarkdownContent(task.content)}
                   </div>
 

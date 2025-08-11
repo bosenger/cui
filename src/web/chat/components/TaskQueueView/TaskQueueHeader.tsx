@@ -1,32 +1,50 @@
-import React, { useState } from 'react';
-import { Edit, Check, X, Clock, CheckCircle, AlertCircle, Square } from 'lucide-react';
-import { Button } from '@/web/chat/components/ui/button';
-import { Input } from '@/web/chat/components/ui/input';
-import { Textarea } from '@/web/chat/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/web/chat/components/ui/tooltip';
-import { api } from '../../services/api';
-import type { TaskQueue } from '../../types';
+import React, { useState } from "react";
+import {
+  Edit,
+  Check,
+  X,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Square,
+} from "lucide-react";
+import { Button } from "@/web/chat/components/ui/button";
+import { Input } from "@/web/chat/components/ui/input";
+import { Textarea } from "@/web/chat/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/web/chat/components/ui/tooltip";
+import { api } from "../../services/api";
+import type { TaskQueue } from "../../types";
 
 interface TaskQueueHeaderProps {
   queue: TaskQueue;
   onQueueUpdate: () => void;
 }
 
-export function TaskQueueHeader({ queue, onQueueUpdate }: TaskQueueHeaderProps) {
+export function TaskQueueHeader({
+  queue,
+  onQueueUpdate,
+}: TaskQueueHeaderProps) {
   const [editing, setEditing] = useState(false);
   const [editingName, setEditingName] = useState(queue.name);
-  const [editingDescription, setEditingDescription] = useState(queue.description || '');
+  const [editingDescription, setEditingDescription] = useState(
+    queue.description || ""
+  );
   const [saving, setSaving] = useState(false);
 
   const getStatusIcon = () => {
     switch (queue.status) {
-      case 'running':
+      case "running":
         return <Clock className="h-5 w-5 text-blue-500" />;
-      case 'completed':
+      case "completed":
         return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'failed':
+      case "failed":
         return <AlertCircle className="h-5 w-5 text-red-500" />;
-      case 'cancelled':
+      case "cancelled":
         return <Square className="h-5 w-5 text-yellow-500" />;
       default:
         return <Clock className="h-5 w-5 text-muted-foreground" />;
@@ -35,22 +53,24 @@ export function TaskQueueHeader({ queue, onQueueUpdate }: TaskQueueHeaderProps) 
 
   const getStatusColor = () => {
     switch (queue.status) {
-      case 'running':
-        return 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950';
-      case 'completed':
-        return 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950';
-      case 'failed':
-        return 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950';
-      case 'cancelled':
-        return 'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950';
+      case "running":
+        return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950";
+      case "completed":
+        return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950";
+      case "failed":
+        return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950";
+      case "cancelled":
+        return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950";
       default:
-        return 'text-muted-foreground bg-muted/50';
+        return "text-muted-foreground bg-muted/50";
     }
   };
 
   const getProgressPercentage = () => {
     if (queue.tasks.length === 0) return 0;
-    const completedCount = queue.tasks.filter(t => t.status === 'completed').length;
+    const completedCount = queue.tasks.filter(
+      (t) => t.status === "completed"
+    ).length;
     return Math.round((completedCount / queue.tasks.length) * 100);
   };
 
@@ -63,14 +83,18 @@ export function TaskQueueHeader({ queue, onQueueUpdate }: TaskQueueHeaderProps) 
     try {
       await api.updateTaskQueue(queue.id, {
         name: editingName.trim(),
-        description: editingDescription.trim() || undefined
+        description: editingDescription.trim() || undefined,
       });
-      
+
       setEditing(false);
       onQueueUpdate();
     } catch (err) {
-      console.error('Failed to update queue:', err);
-      alert(`Failed to update queue: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      console.error("Failed to update queue:", err);
+      alert(
+        `Failed to update queue: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
     } finally {
       setSaving(false);
     }
@@ -78,12 +102,14 @@ export function TaskQueueHeader({ queue, onQueueUpdate }: TaskQueueHeaderProps) 
 
   const handleCancel = () => {
     setEditingName(queue.name);
-    setEditingDescription(queue.description || '');
+    setEditingDescription(queue.description || "");
     setEditing(false);
   };
 
-  const completedTasks = queue.tasks.filter(t => t.status === 'completed').length;
-  const failedTasks = queue.tasks.filter(t => t.status === 'failed').length;
+  const completedTasks = queue.tasks.filter(
+    (t) => t.status === "completed"
+  ).length;
+  const failedTasks = queue.tasks.filter((t) => t.status === "failed").length;
 
   if (editing) {
     return (
@@ -106,7 +132,7 @@ export function TaskQueueHeader({ queue, onQueueUpdate }: TaskQueueHeaderProps) 
               disabled={saving}
             />
           </div>
-          
+
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
@@ -133,16 +159,19 @@ export function TaskQueueHeader({ queue, onQueueUpdate }: TaskQueueHeaderProps) 
   return (
     <div className="flex-1">
       <div className="flex items-start gap-3">
-        {getStatusIcon()}
-        
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-xl font-semibold text-foreground truncate">{queue.name}</h1>
-            <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor()}`}>
+          <div className="flex items-center gap-2 ">
+            {getStatusIcon()}
+            <h1 className="text-xl font-semibold text-foreground truncate">
+              {queue.name}
+            </h1>
+            <span
+              className={`px-2 py-1 text-xs rounded-full font-medium uppercase ${getStatusColor()}`}
+            >
               {queue.status}
             </span>
-            
-            {queue.status !== 'running' && (
+
+            {queue.status !== "running" && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -164,7 +193,7 @@ export function TaskQueueHeader({ queue, onQueueUpdate }: TaskQueueHeaderProps) 
           </div>
 
           {queue.description && (
-            <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+            <p className="text-sm text-muted-foreground  line-clamp-2">
               {queue.description}
             </p>
           )}
@@ -180,22 +209,33 @@ export function TaskQueueHeader({ queue, onQueueUpdate }: TaskQueueHeaderProps) 
                     style={{ width: `${getProgressPercentage()}%` }}
                   />
                 </div>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground uppercase">
                   {completedTasks}/{queue.tasks.length}
                 </span>
               </div>
             )}
 
             {/* Stats */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span>{queue.projectPath}</span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground ">
+              <span className="border rounded-sm  px-2">
+                {queue.projectPath}
+              </span>
               {queue.tasks.length === 0 ? (
-                <span>No tasks</span>
+                <span className="uppercase">No tasks</span>
               ) : (
                 <>
-                  <span>{queue.tasks.length} task{queue.tasks.length === 1 ? '' : 's'}</span>
-                  {completedTasks > 0 && <span className="text-green-600">{completedTasks} completed</span>}
-                  {failedTasks > 0 && <span className="text-red-600">{failedTasks} failed</span>}
+                  <span className="uppercase">
+                    {queue.tasks.length} tasks
+                    {queue.tasks.length === 1 ? "" : "s"}
+                  </span>
+                  {completedTasks > 0 && (
+                    <span className="text-green-600 uppercase">
+                      {completedTasks} completed
+                    </span>
+                  )}
+                  {failedTasks > 0 && (
+                    <span className="text-red-600">{failedTasks} failed</span>
+                  )}
                 </>
               )}
             </div>
