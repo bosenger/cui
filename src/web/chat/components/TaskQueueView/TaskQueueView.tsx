@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, Square, Plus, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Play, Square, Plus, Edit, Trash2, X } from 'lucide-react';
 import { Button } from '@/web/chat/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/web/chat/components/ui/tooltip';
 import { TaskQueueHeader } from './TaskQueueHeader';
 import { TaskQueueTaskList } from './TaskQueueTaskList';
 import { TaskEditor } from './TaskEditor';
+import { MessageList } from '../MessageList/MessageList';
+import { ConversationHeader } from '../ConversationHeader/ConversationHeader';
 import { api } from '../../services/api';
+import { useConversationMessages } from '../../hooks';
 import type { TaskQueue, Task } from '../../types';
 
 export function TaskQueueView() {
@@ -18,6 +21,29 @@ export function TaskQueueView() {
   const [executing, setExecuting] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [showTaskEditor, setShowTaskEditor] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  // Use conversation messages hook for selected task
+  const {
+    messages,
+    toolResults,
+    currentPermissionRequest,
+    childrenMessages,
+    expandedTasks,
+    clearMessages,
+    addMessage,
+    setAllMessages,
+    handleStreamMessage,
+    toggleTaskExpanded,
+    clearPermissionRequest,
+    setPermissionRequest,
+  } = useConversationMessages({
+    onResult: () => {},
+    onError: (err) => {
+      console.error('Error in task conversation:', err);
+    },
+    onClosed: () => {}
+  });
 
   const loadQueue = async () => {
     if (!queueId) return;
@@ -125,6 +151,27 @@ export function TaskQueueView() {
     }
   };
 
+  const handleTaskClick = async (task: Task) => {
+    if (!task.sessionId) return;
+    
+    setSelectedTask(task);
+    
+    // Load the conversation messages for this task
+    try {
+      const conversation = await api.getConversation(task.sessionId);
+      // Clear existing messages and load new ones
+      clearMessages();
+      setAllMessages(conversation.messages, conversation.toolResults || []);
+    } catch (err) {
+      console.error('Failed to load task conversation:', err);
+    }
+  };
+
+  const handleCloseTaskDetails = () => {
+    setSelectedTask(null);
+    clearMessages();
+  };
+
   const handleDeleteTask = async (taskId: string) => {
     if (!queue) return;
     
@@ -198,7 +245,7 @@ export function TaskQueueView() {
             variant="ghost"
             size="sm"
             onClick={handleBack}
-            className="mr-2"
+            className="mr-2 cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back
@@ -216,6 +263,7 @@ export function TaskQueueView() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowTaskEditor(true)}
+                    className="cursor-pointer"
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     Add Task
@@ -236,6 +284,7 @@ export function TaskQueueView() {
                     size="sm"
                     onClick={handleExecuteQueue}
                     disabled={executing}
+                    className="cursor-pointer"
                   >
                     <Play className="h-4 w-4 mr-1" />
                     {executing ? 'Starting...' : 'Execute Queue'}
@@ -256,6 +305,7 @@ export function TaskQueueView() {
                     variant="outline"
                     size="sm"
                     onClick={handleCancelQueue}
+                    className="cursor-pointer"
                   >
                     <Square className="h-4 w-4 mr-1" />
                     Cancel
@@ -270,13 +320,62 @@ export function TaskQueueView() {
         </div>
       </div>
 
-      {/* Task List */}
-      <TaskQueueTaskList
-        queue={queue}
-        onTaskEdit={setEditingTaskId}
-        onTaskDelete={handleDeleteTask}
-        onTaskReorder={handleReorderTasks}
-      />
+      {/* Main Content Area */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Task List - Left Side */}
+        <div className={`flex flex-col ${selectedTask ? 'w-1/2' : 'w-full'} border-r border-border`}>
+          <TaskQueueTaskList
+            queue={queue}
+            onTaskEdit={setEditingTaskId}
+            onTaskDelete={handleDeleteTask}
+            onTaskReorder={handleReorderTasks}
+            onTaskClick={handleTaskClick}
+          />
+        </div>
+
+        {/* Task Details - Right Side */}
+        {selectedTask && (
+          <div className="flex flex-col w-1/2">
+            {/* Task Details Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-foreground">Task Details</h3>
+                <span className="text-sm text-muted-foreground">
+                  {selectedTask.title}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCloseTaskDetails}
+                className="cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Task Conversation */}
+            {selectedTask.sessionId && (
+              <div className="flex-1 overflow-hidden">
+                <MessageList
+                  messages={messages}
+                  toolResults={toolResults}
+                  currentPermissionRequest={currentPermissionRequest}
+                  childrenMessages={childrenMessages}
+                  expandedTasks={expandedTasks}
+                  onToggleTaskExpanded={toggleTaskExpanded}
+                  sessionId={selectedTask.sessionId}
+                  workingDirectory={queue.projectPath}
+                  onApprovePermission={() => {}}
+                  onRejectPermission={() => {}}
+                  onSelectFile={() => {}}
+                  isPermissionDecisionLoading={false}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Task Editor for Creating */}
       {showTaskEditor && (

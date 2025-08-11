@@ -21,6 +21,7 @@ interface ConversationsContextType {
     pinned?: boolean;
   }) => Promise<void>;
   loadMoreConversations: () => Promise<void>;
+  loadRecentDirectories: () => Promise<void>;
   getMostRecentWorkingDirectory: () => string | null;
 }
 
@@ -185,6 +186,17 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
     return sorted[0]?.projectPath || null;
   };
 
+  const loadRecentDirectories = async () => {
+    try {
+      const apiDirectories = await loadWorkingDirectories();
+      if (apiDirectories) {
+        updateRecentDirectories([], apiDirectories);
+      }
+    } catch (err) {
+      console.error('Failed to load recent directories:', err);
+    }
+  };
+
   // Effect to merge live status with conversations
   useEffect(() => {
     setConversations(prevConversations => {
@@ -218,6 +230,7 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
         recentDirectories,
         loadConversations, 
         loadMoreConversations, 
+        loadRecentDirectories,
         getMostRecentWorkingDirectory 
       }}
     >

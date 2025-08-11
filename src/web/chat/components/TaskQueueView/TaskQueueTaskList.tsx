@@ -10,9 +10,10 @@ interface TaskQueueTaskListProps {
   onTaskEdit: (taskId: string) => void;
   onTaskDelete: (taskId: string) => void;
   onTaskReorder: (taskIds: string[]) => void;
+  onTaskClick?: (task: Task) => void;
 }
 
-export function TaskQueueTaskList({ queue, onTaskEdit, onTaskDelete, onTaskReorder }: TaskQueueTaskListProps) {
+export function TaskQueueTaskList({ queue, onTaskEdit, onTaskDelete, onTaskReorder, onTaskClick }: TaskQueueTaskListProps) {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
 
@@ -133,16 +134,16 @@ export function TaskQueueTaskList({ queue, onTaskEdit, onTaskDelete, onTaskReord
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="p-4 space-y-3">
+      <div className="p-6 space-y-4">
         {queue.tasks.map((task, index) => (
           <div
             key={task.id}
-            className={`group relative border rounded-lg p-4 transition-all ${
+            className={`group relative border rounded-lg p-5 transition-all cursor-pointer ${
               draggedTaskId === task.id ? 'opacity-50' : ''
             } ${
-              dragOverTaskId === task.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-border hover:border-border/60'
+              dragOverTaskId === task.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-border hover:border-border/60 hover:shadow-sm'
             } ${
-              task.status === 'running' ? 'ring-2 ring-blue-500/20' : ''
+              task.status === 'running' ? 'ring-2 ring-blue-500/20 bg-blue-50/50 dark:bg-blue-950/50' : ''
             }`}
             draggable={canEdit}
             onDragStart={(e) => handleDragStart(e, task.id)}
@@ -150,6 +151,12 @@ export function TaskQueueTaskList({ queue, onTaskEdit, onTaskDelete, onTaskReord
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, task.id)}
             onDragEnd={handleDragEnd}
+            onClick={() => {
+              // Only show details if task has a session (has been executed)
+              if (task.sessionId && onTaskClick) {
+                onTaskClick(task);
+              }
+            }}
           >
             {/* Task Index and Drag Handle */}
             <div className="absolute left-1 top-1 flex items-center gap-1">
@@ -166,19 +173,24 @@ export function TaskQueueTaskList({ queue, onTaskEdit, onTaskDelete, onTaskReord
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   {/* Title and Status */}
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-3 mb-3">
                     {getStatusIcon(task.status)}
-                    <h3 className="font-medium text-foreground truncate">{task.title}</h3>
+                    <h3 className="text-lg font-semibold text-foreground truncate">{task.title}</h3>
                     <Badge variant="secondary" className={getStatusColor(task.status)}>
                       {task.status}
                     </Badge>
                     <Badge variant="outline" className="text-xs">
                       {task.type === 'new' ? 'New Session' : 'Fork Previous'}
                     </Badge>
+                    {task.sessionId && (
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
+                        View Details
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Content Preview */}
-                  <div className="text-sm text-muted-foreground mb-2 line-clamp-3 whitespace-pre-wrap">
+                  <div className="text-sm text-muted-foreground mb-3 line-clamp-3 whitespace-pre-wrap">
                     {formatMarkdownContent(task.content)}
                   </div>
 
@@ -214,7 +226,7 @@ export function TaskQueueTaskList({ queue, onTaskEdit, onTaskDelete, onTaskReord
                             variant="ghost"
                             size="sm"
                             onClick={() => onTaskEdit(task.id)}
-                            className="h-8 w-8 p-0"
+                            className="h-8 w-8 p-0 cursor-pointer"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -232,7 +244,7 @@ export function TaskQueueTaskList({ queue, onTaskEdit, onTaskDelete, onTaskReord
                             variant="ghost"
                             size="sm"
                             onClick={() => onTaskDelete(task.id)}
-                            className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950"
+                            className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950 cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

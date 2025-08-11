@@ -19,6 +19,7 @@ export function Home() {
     loadConversations, 
     loadMoreConversations,
     recentDirectories,
+    loadRecentDirectories,
     getMostRecentWorkingDirectory 
   } = useConversations();
   
@@ -82,10 +83,13 @@ export function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array means this runs only on mount
 
-  // Reload conversations when tab changes
+  // Reload conversations when tab changes or load directories for queues tab
   useEffect(() => {
     if (activeTab !== 'queues') {
       loadConversations(undefined, getFiltersForTab(activeTab));
+    } else {
+      // For queues tab, just load working directories without loading conversations
+      loadRecentDirectories();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);

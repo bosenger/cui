@@ -67,16 +67,16 @@ export function TaskQueueItem({ queue, recentDirectories, onClick, onDelete }: T
   return (
     <div className="relative group hover:bg-muted/30 border-b border-border/20 last:border-b-0">
       <div
-        className="block p-4 cursor-pointer"
+        className="block p-6 cursor-pointer transition-all duration-200"
         onClick={onClick}
       >
         <div className="flex items-start justify-between">
           {/* Main Content */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-3 mb-2">
               {getStatusIcon()}
-              <h3 className="font-medium text-foreground truncate">{queue.name}</h3>
-              <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor()}`}>
+              <h3 className="text-lg font-semibold text-foreground truncate">{queue.name}</h3>
+              <span className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusColor()}`}>
                 {queue.status}
               </span>
             </div>
@@ -90,14 +90,14 @@ export function TaskQueueItem({ queue, recentDirectories, onClick, onDelete }: T
 
             {/* Progress Bar */}
             {queue.taskCount > 0 && (
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
                   <div
                     className="h-full bg-blue-500 transition-all duration-300"
                     style={{ width: `${getProgressPercentage()}%` }}
                   />
                 </div>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground font-medium">
                   {queue.completedTasks}/{queue.taskCount}
                 </span>
               </div>
@@ -127,7 +127,7 @@ export function TaskQueueItem({ queue, recentDirectories, onClick, onDelete }: T
                       e.stopPropagation();
                       onDelete();
                     }}
-                    className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950"
+                    className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950 cursor-pointer"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
