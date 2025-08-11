@@ -11,6 +11,18 @@ import type {
   FileSystemListQuery,
   FileSystemListResponse,
   CommandsResponse,
+  TaskQueue,
+  TaskQueueSummary,
+  TaskQueueListQuery,
+  TaskQueueListResponse,
+  TaskQueueStatusResponse,
+  CreateTaskQueueRequest,
+  UpdateTaskQueueRequest,
+  CreateTaskRequest,
+  UpdateTaskRequest,
+  ReorderTasksRequest,
+  ExecuteTaskQueueResponse,
+  Task,
 } from '../types';
 import { getAuthToken } from '../../hooks/useAuth';
 type GeminiHealthResponse = { status: 'healthy' | 'unhealthy'; message: string; apiKeyValid: boolean };
@@ -238,6 +250,93 @@ class ApiService {
     return this.apiCall('/api/notifications/test', {
       method: 'POST',
       body: JSON.stringify({}),
+    });
+  }
+
+  // Task Queue API methods
+  async getTaskQueues(query?: TaskQueueListQuery): Promise<TaskQueueListResponse> {
+    const searchParams = new URLSearchParams();
+    if (query?.projectPath) searchParams.set('projectPath', query.projectPath);
+    if (query?.status) searchParams.set('status', query.status);
+    if (query?.limit) searchParams.set('limit', query.limit.toString());
+    if (query?.offset) searchParams.set('offset', query.offset.toString());
+    if (query?.sortBy) searchParams.set('sortBy', query.sortBy);
+    if (query?.order) searchParams.set('order', query.order);
+
+    const url = `/api/task-queues${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    return this.apiCall<TaskQueueListResponse>(url);
+  }
+
+  async createTaskQueue(request: CreateTaskQueueRequest): Promise<TaskQueue> {
+    return this.apiCall<TaskQueue>('/api/task-queues', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getTaskQueue(queueId: string): Promise<TaskQueue> {
+    return this.apiCall<TaskQueue>(`/api/task-queues/${queueId}`);
+  }
+
+  async updateTaskQueue(queueId: string, request: UpdateTaskQueueRequest): Promise<TaskQueue> {
+    return this.apiCall<TaskQueue>(`/api/task-queues/${queueId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async deleteTaskQueue(queueId: string): Promise<void> {
+    await this.apiCall(`/api/task-queues/${queueId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getTaskQueueStatus(queueId: string): Promise<TaskQueueStatusResponse> {
+    return this.apiCall<TaskQueueStatusResponse>(`/api/task-queues/${queueId}/status`);
+  }
+
+  async executeTaskQueue(queueId: string): Promise<ExecuteTaskQueueResponse> {
+    return this.apiCall<ExecuteTaskQueueResponse>(`/api/task-queues/${queueId}/execute`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async cancelTaskQueue(queueId: string): Promise<{ message: string }> {
+    return this.apiCall(`/api/task-queues/${queueId}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async createTask(queueId: string, request: CreateTaskRequest): Promise<Task> {
+    return this.apiCall<Task>(`/api/task-queues/${queueId}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getTask(queueId: string, taskId: string): Promise<Task> {
+    return this.apiCall<Task>(`/api/task-queues/${queueId}/tasks/${taskId}`);
+  }
+
+  async updateTask(queueId: string, taskId: string, request: UpdateTaskRequest): Promise<Task> {
+    return this.apiCall<Task>(`/api/task-queues/${queueId}/tasks/${taskId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async deleteTask(queueId: string, taskId: string): Promise<void> {
+    await this.apiCall(`/api/task-queues/${queueId}/tasks/${taskId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async reorderTasks(queueId: string, request: ReorderTasksRequest): Promise<TaskQueue> {
+    return this.apiCall<TaskQueue>(`/api/task-queues/${queueId}/tasks/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
     });
   }
 

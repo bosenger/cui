@@ -18,6 +18,18 @@ import type {
   FileSystemListResponse,
   CommandsResponse,
   GeminiHealthResponse,
+  TaskQueue,
+  TaskQueueSummary,
+  TaskQueueListQuery,
+  TaskQueueListResponse,
+  TaskQueueStatusResponse,
+  CreateTaskQueueRequest,
+  UpdateTaskQueueRequest,
+  CreateTaskRequest,
+  UpdateTaskRequest,
+  ReorderTasksRequest,
+  ExecuteTaskQueueResponse,
+  Task,
 } from '@/types';
 
 // Import ContentBlock from Anthropic SDK
@@ -42,6 +54,18 @@ export type {
   FileSystemListResponse,
   CommandsResponse,
   GeminiHealthResponse,
+  TaskQueue,
+  TaskQueueSummary,
+  TaskQueueListQuery,
+  TaskQueueListResponse,
+  TaskQueueStatusResponse,
+  CreateTaskQueueRequest,
+  UpdateTaskQueueRequest,
+  CreateTaskRequest,
+  UpdateTaskRequest,
+  ReorderTasksRequest,
+  ExecuteTaskQueueResponse,
+  Task,
 };
 
 // Chat-specific types
