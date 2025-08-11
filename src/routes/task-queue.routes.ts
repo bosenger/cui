@@ -294,6 +294,33 @@ export function createTaskQueueRoutes(
     }
   });
 
+  // Reorder tasks in queue (must come before GET /:taskId)
+  router.put('/:queueId/tasks/reorder', async (req: Request<{ queueId: string }, TaskQueue, ReorderTasksRequest> & RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
+    const { queueId } = req.params;
+    
+    logger.debug('Reorder tasks request', {
+      requestId,
+      queueId,
+      taskIds: req.body.taskIds
+    });
+    
+    try {
+      const queue = await taskQueueService.reorderTasks(queueId, req.body.taskIds);
+      
+      logger.info('Tasks reordered successfully', {
+        requestId,
+        queueId,
+        taskCount: req.body.taskIds.length
+      });
+      
+      res.json(queue);
+    } catch (error) {
+      logger.error('Failed to reorder tasks', error);
+      next(error);
+    }
+  });
+
   // Create task in queue
   router.post('/:queueId/tasks', async (req: Request<{ queueId: string }, Task, CreateTaskRequest> & RequestWithRequestId, res, next) => {
     const requestId = req.requestId;
@@ -429,33 +456,6 @@ export function createTaskQueueRoutes(
       res.status(204).send();
     } catch (error) {
       logger.error('Failed to delete task', error);
-      next(error);
-    }
-  });
-
-  // Reorder tasks in queue
-  router.put('/:queueId/tasks/reorder', async (req: Request<{ queueId: string }, TaskQueue, ReorderTasksRequest> & RequestWithRequestId, res, next) => {
-    const requestId = req.requestId;
-    const { queueId } = req.params;
-    
-    logger.debug('Reorder tasks request', {
-      requestId,
-      queueId,
-      taskIds: req.body.taskIds
-    });
-    
-    try {
-      const queue = await taskQueueService.reorderTasks(queueId, req.body.taskIds);
-      
-      logger.info('Tasks reordered successfully', {
-        requestId,
-        queueId,
-        taskCount: req.body.taskIds.length
-      });
-      
-      res.json(queue);
-    } catch (error) {
-      logger.error('Failed to reorder tasks', error);
       next(error);
     }
   });
