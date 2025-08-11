@@ -1,22 +1,22 @@
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import Database from 'better-sqlite3';
-import { v4 as uuidv4 } from 'uuid';
-import { EventEmitter } from 'events';
-import type { 
-  Task, 
-  TaskQueue, 
+import fs from "fs";
+import path from "path";
+import os from "os";
+import Database from "better-sqlite3";
+import { v4 as uuidv4 } from "uuid";
+import { EventEmitter } from "events";
+import type {
+  Task,
+  TaskQueue,
   TaskQueueSummary,
   TaskQueueListQuery,
   CreateTaskQueueRequest,
   UpdateTaskQueueRequest,
   CreateTaskRequest,
-  UpdateTaskRequest
-} from '@/types/index.js';
-import { CUIError } from '@/types/index.js';
-import { createLogger } from './logger.js';
-import { type Logger } from './logger.js';
+  UpdateTaskRequest,
+} from "@/types/index.js";
+import { CUIError } from "@/types/index.js";
+import { createLogger } from "./logger.js";
+import { type Logger } from "./logger.js";
 
 type TaskQueueRow = {
   id: string;
@@ -84,7 +84,7 @@ export class TaskQueueService extends EventEmitter {
 
   constructor(customConfigDir?: string) {
     super();
-    this.logger = createLogger('TaskQueueService');
+    this.logger = createLogger("TaskQueueService");
     this.initializePaths(customConfigDir);
   }
 
@@ -107,20 +107,20 @@ export class TaskQueueService extends EventEmitter {
 
   private initializePaths(customConfigDir?: string): void {
     if (customConfigDir) {
-      if (customConfigDir === ':memory:') {
-        this.configDir = ':memory:';
-        this.dbPath = ':memory:';
+      if (customConfigDir === ":memory:") {
+        this.configDir = ":memory:";
+        this.dbPath = ":memory:";
         return;
       }
-      this.configDir = path.join(customConfigDir, '.cui');
+      this.configDir = path.join(customConfigDir, ".cui");
     } else {
-      this.configDir = path.join(os.homedir(), '.cui');
+      this.configDir = path.join(os.homedir(), ".cui");
     }
-    this.dbPath = path.join(this.configDir, 'task-queues.db');
+    this.dbPath = path.join(this.configDir, "task-queues.db");
 
-    this.logger.debug('Initializing paths', {
+    this.logger.debug("Initializing paths", {
       configDir: this.configDir,
-      dbPath: this.dbPath
+      dbPath: this.dbPath,
     });
   }
 
@@ -130,14 +130,14 @@ export class TaskQueueService extends EventEmitter {
     }
 
     try {
-      if (this.dbPath !== ':memory:' && !fs.existsSync(this.configDir)) {
+      if (this.dbPath !== ":memory:" && !fs.existsSync(this.configDir)) {
         fs.mkdirSync(this.configDir, { recursive: true });
-        this.logger.debug('Created config directory', { dir: this.configDir });
+        this.logger.debug("Created config directory", { dir: this.configDir });
       }
 
       this.db = new Database(this.dbPath);
-      this.db.pragma('journal_mode = WAL');
-      this.db.pragma('foreign_keys = ON');
+      this.db.pragma("journal_mode = WAL");
+      this.db.pragma("foreign_keys = ON");
 
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS task_queues (
@@ -187,16 +187,24 @@ export class TaskQueueService extends EventEmitter {
       this.ensureMetadata();
       this.isInitialized = true;
 
-      this.logger.debug('TaskQueueService initialized successfully');
+      this.logger.debug("TaskQueueService initialized successfully");
     } catch (error) {
-      this.logger.error('Failed to initialize task queue database', error);
-      throw new CUIError('TASK_QUEUE_INIT_FAILED', `Task queue database initialization failed: ${error instanceof Error ? error.message : String(error)}`, 500);
+      this.logger.error("Failed to initialize task queue database", error);
+      throw new CUIError(
+        "TASK_QUEUE_INIT_FAILED",
+        `Task queue database initialization failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
   private prepareStatements(): void {
     // Queue statements
-    this.getQueueStmt = this.db.prepare('SELECT * FROM task_queues WHERE id = ?');
+    this.getQueueStmt = this.db.prepare(
+      "SELECT * FROM task_queues WHERE id = ?"
+    );
     this.insertQueueStmt = this.db.prepare(`
       INSERT INTO task_queues (
         id, name, project_path, description, status, current_task_index, created_at, updated_at
@@ -215,7 +223,9 @@ export class TaskQueueService extends EventEmitter {
         completed_at = @completed_at
       WHERE id = @id
     `);
-    this.deleteQueueStmt = this.db.prepare('DELETE FROM task_queues WHERE id = ?');
+    this.deleteQueueStmt = this.db.prepare(
+      "DELETE FROM task_queues WHERE id = ?"
+    );
     this.listQueuesStmt = this.db.prepare(`
       SELECT 
         tq.*,
@@ -240,8 +250,10 @@ export class TaskQueueService extends EventEmitter {
     `);
 
     // Task statements
-    this.getTaskStmt = this.db.prepare('SELECT * FROM tasks WHERE id = ?');
-    this.getTasksByQueueStmt = this.db.prepare('SELECT * FROM tasks WHERE queue_id = ? ORDER BY order_index ASC');
+    this.getTaskStmt = this.db.prepare("SELECT * FROM tasks WHERE id = ?");
+    this.getTasksByQueueStmt = this.db.prepare(
+      "SELECT * FROM tasks WHERE queue_id = ? ORDER BY order_index ASC"
+    );
     this.insertTaskStmt = this.db.prepare(`
       INSERT INTO tasks (
         id, queue_id, title, content, type, order_index, status, created_at, updated_at
@@ -264,32 +276,48 @@ export class TaskQueueService extends EventEmitter {
         completed_at = @completed_at
       WHERE id = @id
     `);
-    this.deleteTaskStmt = this.db.prepare('DELETE FROM tasks WHERE id = ?');
-    this.getMaxOrderStmt = this.db.prepare('SELECT COALESCE(MAX(order_index), -1) + 1 as next_order FROM tasks WHERE queue_id = ?');
-    this.updateTaskOrderStmt = this.db.prepare('UPDATE tasks SET order_index = @order_index, updated_at = @updated_at WHERE id = @id');
+    this.deleteTaskStmt = this.db.prepare("DELETE FROM tasks WHERE id = ?");
+    this.getMaxOrderStmt = this.db.prepare(
+      "SELECT COALESCE(MAX(order_index), -1) + 1 as next_order FROM tasks WHERE queue_id = ?"
+    );
+    this.updateTaskOrderStmt = this.db.prepare(
+      "UPDATE tasks SET order_index = @order_index, updated_at = @updated_at WHERE id = @id"
+    );
 
     // Metadata statements
-    this.setMetadataStmt = this.db.prepare('INSERT INTO task_queue_metadata (key, value) VALUES (@key, @value) ON CONFLICT(key) DO UPDATE SET value=excluded.value');
-    this.getMetadataStmt = this.db.prepare('SELECT value FROM task_queue_metadata WHERE key = ?');
+    this.setMetadataStmt = this.db.prepare(
+      "INSERT INTO task_queue_metadata (key, value) VALUES (@key, @value) ON CONFLICT(key) DO UPDATE SET value=excluded.value"
+    );
+    this.getMetadataStmt = this.db.prepare(
+      "SELECT value FROM task_queue_metadata WHERE key = ?"
+    );
   }
 
   private ensureMetadata(): void {
     const now = new Date().toISOString();
-    const schema = this.getMetadataStmt.get('schema_version') as { value?: string } | undefined;
+    const schema = this.getMetadataStmt.get("schema_version") as
+      | { value?: string }
+      | undefined;
     if (!schema) {
-      this.setMetadataStmt.run({ key: 'schema_version', value: '1' });
-      this.setMetadataStmt.run({ key: 'created_at', value: now });
-      this.setMetadataStmt.run({ key: 'last_updated', value: now });
+      this.setMetadataStmt.run({ key: "schema_version", value: "1" });
+      this.setMetadataStmt.run({ key: "created_at", value: now });
+      this.setMetadataStmt.run({ key: "last_updated", value: now });
     }
   }
 
-  private mapQueueRow(row: TaskQueueRow & { task_count?: number; completed_tasks?: number; failed_tasks?: number }): TaskQueue | TaskQueueSummary {
+  private mapQueueRow(
+    row: TaskQueueRow & {
+      task_count?: number;
+      completed_tasks?: number;
+      failed_tasks?: number;
+    }
+  ): TaskQueue | TaskQueueSummary {
     const base = {
       id: row.id,
       name: row.name,
       projectPath: row.project_path,
       description: row.description || undefined,
-      status: row.status as TaskQueue['status'],
+      status: row.status as TaskQueue["status"],
       currentTaskIndex: row.current_task_index,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -298,7 +326,7 @@ export class TaskQueueService extends EventEmitter {
     };
 
     // If we have task count info, return as summary
-    if (typeof row.task_count !== 'undefined') {
+    if (typeof row.task_count !== "undefined") {
       return {
         ...base,
         taskCount: row.task_count,
@@ -320,9 +348,9 @@ export class TaskQueueService extends EventEmitter {
       queueId: row.queue_id,
       title: row.title,
       content: row.content,
-      type: row.type as 'new' | 'fork',
+      type: row.type as "new" | "fork",
       order: row.order_index,
-      status: row.status as Task['status'],
+      status: row.status as Task["status"],
       sessionId: row.session_id || undefined,
       streamingId: row.streaming_id || undefined,
       error: row.error || undefined,
@@ -336,7 +364,11 @@ export class TaskQueueService extends EventEmitter {
   // Queue CRUD operations
   async createQueue(request: CreateTaskQueueRequest): Promise<TaskQueue> {
     if (!this.isInitialized) {
-      throw new CUIError('SERVICE_NOT_INITIALIZED', 'TaskQueueService not initialized', 500);
+      throw new CUIError(
+        "SERVICE_NOT_INITIALIZED",
+        "TaskQueueService not initialized",
+        500
+      );
     }
 
     const now = new Date().toISOString();
@@ -348,7 +380,7 @@ export class TaskQueueService extends EventEmitter {
         name: request.name,
         project_path: request.projectPath,
         description: request.description || null,
-        status: 'draft',
+        status: "draft",
         current_task_index: 0,
         created_at: now,
         updated_at: now,
@@ -356,23 +388,41 @@ export class TaskQueueService extends EventEmitter {
 
       const queue = await this.getQueueById(id);
       if (!queue) {
-        throw new CUIError('QUEUE_CREATE_FAILED', 'Failed to create queue', 500);
+        throw new CUIError(
+          "QUEUE_CREATE_FAILED",
+          "Failed to create queue",
+          500
+        );
       }
 
-      this.logger.debug('Created task queue', { id, name: request.name, projectPath: request.projectPath });
+      this.logger.debug("Created task queue", {
+        id,
+        name: request.name,
+        projectPath: request.projectPath,
+      });
       return queue;
     } catch (error) {
-      this.logger.error('Failed to create queue', error);
+      this.logger.error("Failed to create queue", error);
       if (error instanceof CUIError) {
         throw error;
       }
-      throw new CUIError('QUEUE_CREATE_FAILED', `Failed to create queue: ${error instanceof Error ? error.message : String(error)}`, 500);
+      throw new CUIError(
+        "QUEUE_CREATE_FAILED",
+        `Failed to create queue: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
   async getQueueById(id: string): Promise<TaskQueue | null> {
     if (!this.isInitialized) {
-      throw new CUIError('SERVICE_NOT_INITIALIZED', 'TaskQueueService not initialized', 500);
+      throw new CUIError(
+        "SERVICE_NOT_INITIALIZED",
+        "TaskQueueService not initialized",
+        500
+      );
     }
 
     try {
@@ -382,26 +432,39 @@ export class TaskQueueService extends EventEmitter {
       }
 
       const queue = this.mapQueueRow(row) as TaskQueue;
-      
+
       // Load tasks for this queue
       const taskRows = this.getTasksByQueueStmt.all(id) as TaskRow[];
-      queue.tasks = taskRows.map(taskRow => this.mapTaskRow(taskRow));
+      queue.tasks = taskRows.map((taskRow) => this.mapTaskRow(taskRow));
 
       return queue;
     } catch (error) {
-      this.logger.error('Failed to get queue by ID', error);
-      throw new CUIError('QUEUE_GET_FAILED', `Failed to get queue: ${error instanceof Error ? error.message : String(error)}`, 500);
+      this.logger.error("Failed to get queue by ID", error);
+      throw new CUIError(
+        "QUEUE_GET_FAILED",
+        `Failed to get queue: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
-  async updateQueue(id: string, request: UpdateTaskQueueRequest): Promise<TaskQueue> {
+  async updateQueue(
+    id: string,
+    request: UpdateTaskQueueRequest
+  ): Promise<TaskQueue> {
     if (!this.isInitialized) {
-      throw new CUIError('SERVICE_NOT_INITIALIZED', 'TaskQueueService not initialized', 500);
+      throw new CUIError(
+        "SERVICE_NOT_INITIALIZED",
+        "TaskQueueService not initialized",
+        500
+      );
     }
 
     const existingQueue = await this.getQueueById(id);
     if (!existingQueue) {
-      throw new CUIError('QUEUE_NOT_FOUND', 'Task queue not found', 404);
+      throw new CUIError("QUEUE_NOT_FOUND", "Task queue not found", 404);
     }
 
     const now = new Date().toISOString();
@@ -420,47 +483,73 @@ export class TaskQueueService extends EventEmitter {
 
       const updatedQueue = await this.getQueueById(id);
       if (!updatedQueue) {
-        throw new CUIError('QUEUE_UPDATE_FAILED', 'Failed to update queue', 500);
+        throw new CUIError(
+          "QUEUE_UPDATE_FAILED",
+          "Failed to update queue",
+          500
+        );
       }
 
-      this.logger.debug('Updated task queue', { id, changes: request });
+      this.logger.debug("Updated task queue", { id, changes: request });
       return updatedQueue;
     } catch (error) {
-      this.logger.error('Failed to update queue', error);
+      this.logger.error("Failed to update queue", error);
       if (error instanceof CUIError) {
         throw error;
       }
-      throw new CUIError('QUEUE_UPDATE_FAILED', `Failed to update queue: ${error instanceof Error ? error.message : String(error)}`, 500);
+      throw new CUIError(
+        "QUEUE_UPDATE_FAILED",
+        `Failed to update queue: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
   async deleteQueue(id: string): Promise<void> {
     if (!this.isInitialized) {
-      throw new CUIError('SERVICE_NOT_INITIALIZED', 'TaskQueueService not initialized', 500);
+      throw new CUIError(
+        "SERVICE_NOT_INITIALIZED",
+        "TaskQueueService not initialized",
+        500
+      );
     }
 
     const existingQueue = await this.getQueueById(id);
     if (!existingQueue) {
-      throw new CUIError('QUEUE_NOT_FOUND', 'Task queue not found', 404);
+      throw new CUIError("QUEUE_NOT_FOUND", "Task queue not found", 404);
     }
 
     // Don't allow deletion of running queues
-    if (existingQueue.status === 'running') {
-      throw new CUIError('QUEUE_RUNNING', 'Cannot delete running queue', 400);
+    if (existingQueue.status === "running") {
+      throw new CUIError("QUEUE_RUNNING", "Cannot delete running queue", 400);
     }
 
     try {
       this.deleteQueueStmt.run(id);
-      this.logger.debug('Deleted task queue', { id, name: existingQueue.name });
+      this.logger.debug("Deleted task queue", { id, name: existingQueue.name });
     } catch (error) {
-      this.logger.error('Failed to delete queue', error);
-      throw new CUIError('QUEUE_DELETE_FAILED', `Failed to delete queue: ${error instanceof Error ? error.message : String(error)}`, 500);
+      this.logger.error("Failed to delete queue", error);
+      throw new CUIError(
+        "QUEUE_DELETE_FAILED",
+        `Failed to delete queue: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
-  async listQueues(query: TaskQueueListQuery = {}): Promise<{ queues: TaskQueueSummary[]; total: number }> {
+  async listQueues(
+    query: TaskQueueListQuery = {}
+  ): Promise<{ queues: TaskQueueSummary[]; total: number }> {
     if (!this.isInitialized) {
-      throw new CUIError('SERVICE_NOT_INITIALIZED', 'TaskQueueService not initialized', 500);
+      throw new CUIError(
+        "SERVICE_NOT_INITIALIZED",
+        "TaskQueueService not initialized",
+        500
+      );
     }
 
     const {
@@ -468,50 +557,76 @@ export class TaskQueueService extends EventEmitter {
       status,
       limit = 20,
       offset = 0,
-      sortBy = 'updated',
-      order = 'desc'
+      sortBy = "updated",
+      order = "desc",
     } = query;
 
     try {
       // Get total count
       const countResult = this.countQueuesStmt.get(
-        projectPath, projectPath,
-        status, status
+        projectPath,
+        projectPath,
+        status,
+        status
       ) as { count: number };
       const total = countResult.count;
 
       // Get queues with task counts
       const rows = this.listQueuesStmt.all(
-        projectPath, projectPath,
-        status, status,
-        sortBy, sortBy, sortBy,
+        projectPath,
+        projectPath,
+        status,
+        status,
+        sortBy,
+        sortBy,
+        sortBy,
         limit,
         offset
-      ) as (TaskQueueRow & { task_count: number; completed_tasks: number; failed_tasks: number })[];
+      ) as (TaskQueueRow & {
+        task_count: number;
+        completed_tasks: number;
+        failed_tasks: number;
+      })[];
 
-      const queues = rows.map(row => this.mapQueueRow(row) as TaskQueueSummary);
+      const queues = rows.map(
+        (row) => this.mapQueueRow(row) as TaskQueueSummary
+      );
 
       return { queues, total };
     } catch (error) {
-      this.logger.error('Failed to list queues', error);
-      throw new CUIError('QUEUE_LIST_FAILED', `Failed to list queues: ${error instanceof Error ? error.message : String(error)}`, 500);
+      this.logger.error("Failed to list queues", error);
+      throw new CUIError(
+        "QUEUE_LIST_FAILED",
+        `Failed to list queues: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
   // Task CRUD operations
   async createTask(queueId: string, request: CreateTaskRequest): Promise<Task> {
     if (!this.isInitialized) {
-      throw new CUIError('SERVICE_NOT_INITIALIZED', 'TaskQueueService not initialized', 500);
+      throw new CUIError(
+        "SERVICE_NOT_INITIALIZED",
+        "TaskQueueService not initialized",
+        500
+      );
     }
 
     const queue = await this.getQueueById(queueId);
     if (!queue) {
-      throw new CUIError('QUEUE_NOT_FOUND', 'Task queue not found', 404);
+      throw new CUIError("QUEUE_NOT_FOUND", "Task queue not found", 404);
     }
 
     // Don't allow adding tasks to running queues
-    if (queue.status === 'running') {
-      throw new CUIError('QUEUE_RUNNING', 'Cannot add tasks to running queue', 400);
+    if (queue.status === "running") {
+      throw new CUIError(
+        "QUEUE_RUNNING",
+        "Cannot add tasks to running queue",
+        400
+      );
     }
 
     const now = new Date().toISOString();
@@ -520,7 +635,9 @@ export class TaskQueueService extends EventEmitter {
     // Get next order index if not provided
     let orderIndex = request.order;
     if (orderIndex === undefined) {
-      const result = this.getMaxOrderStmt.get(queueId) as { next_order: number };
+      const result = this.getMaxOrderStmt.get(queueId) as {
+        next_order: number;
+      };
       orderIndex = result.next_order;
     }
 
@@ -532,49 +649,74 @@ export class TaskQueueService extends EventEmitter {
         content: request.content,
         type: request.type,
         order_index: orderIndex,
-        status: 'pending',
+        status: "pending",
         created_at: now,
         updated_at: now,
       });
 
       const task = await this.getTaskById(id);
       if (!task) {
-        throw new CUIError('TASK_CREATE_FAILED', 'Failed to create task', 500);
+        throw new CUIError("TASK_CREATE_FAILED", "Failed to create task", 500);
       }
 
-      this.logger.debug('Created task', { id, queueId, title: request.title, type: request.type });
+      this.logger.debug("Created task", {
+        id,
+        queueId,
+        title: request.title,
+        type: request.type,
+      });
       return task;
     } catch (error) {
-      this.logger.error('Failed to create task', error);
+      this.logger.error("Failed to create task", error);
       if (error instanceof CUIError) {
         throw error;
       }
-      throw new CUIError('TASK_CREATE_FAILED', `Failed to create task: ${error instanceof Error ? error.message : String(error)}`, 500);
+      throw new CUIError(
+        "TASK_CREATE_FAILED",
+        `Failed to create task: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
   async getTaskById(id: string): Promise<Task | null> {
     if (!this.isInitialized) {
-      throw new CUIError('SERVICE_NOT_INITIALIZED', 'TaskQueueService not initialized', 500);
+      throw new CUIError(
+        "SERVICE_NOT_INITIALIZED",
+        "TaskQueueService not initialized",
+        500
+      );
     }
 
     try {
       const row = this.getTaskStmt.get(id) as TaskRow | undefined;
       return row ? this.mapTaskRow(row) : null;
     } catch (error) {
-      this.logger.error('Failed to get task by ID', error);
-      throw new CUIError('TASK_GET_FAILED', `Failed to get task: ${error instanceof Error ? error.message : String(error)}`, 500);
+      this.logger.error("Failed to get task by ID", error);
+      throw new CUIError(
+        "TASK_GET_FAILED",
+        `Failed to get task: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
   async updateTask(id: string, request: UpdateTaskRequest): Promise<Task> {
     if (!this.isInitialized) {
-      throw new CUIError('SERVICE_NOT_INITIALIZED', 'TaskQueueService not initialized', 500);
+      throw new CUIError(
+        "SERVICE_NOT_INITIALIZED",
+        "TaskQueueService not initialized",
+        500
+      );
     }
 
     const existingTask = await this.getTaskById(id);
     if (!existingTask) {
-      throw new CUIError('TASK_NOT_FOUND', 'Task not found', 404);
+      throw new CUIError("TASK_NOT_FOUND", "Task not found", 404);
     }
 
     const now = new Date().toISOString();
@@ -597,68 +739,100 @@ export class TaskQueueService extends EventEmitter {
 
       const updatedTask = await this.getTaskById(id);
       if (!updatedTask) {
-        throw new CUIError('TASK_UPDATE_FAILED', 'Failed to update task', 500);
+        throw new CUIError("TASK_UPDATE_FAILED", "Failed to update task", 500);
       }
 
-      this.logger.debug('Updated task', { id, changes: request });
+      this.logger.debug("Updated task", { id, changes: request });
       return updatedTask;
     } catch (error) {
-      this.logger.error('Failed to update task', error);
+      this.logger.error("Failed to update task", error);
       if (error instanceof CUIError) {
         throw error;
       }
-      throw new CUIError('TASK_UPDATE_FAILED', `Failed to update task: ${error instanceof Error ? error.message : String(error)}`, 500);
+      throw new CUIError(
+        "TASK_UPDATE_FAILED",
+        `Failed to update task: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
   async deleteTask(id: string): Promise<void> {
     if (!this.isInitialized) {
-      throw new CUIError('SERVICE_NOT_INITIALIZED', 'TaskQueueService not initialized', 500);
+      throw new CUIError(
+        "SERVICE_NOT_INITIALIZED",
+        "TaskQueueService not initialized",
+        500
+      );
     }
 
     const existingTask = await this.getTaskById(id);
     if (!existingTask) {
-      throw new CUIError('TASK_NOT_FOUND', 'Task not found', 404);
+      throw new CUIError("TASK_NOT_FOUND", "Task not found", 404);
     }
 
     // Don't allow deletion of running tasks
-    if (existingTask.status === 'running') {
-      throw new CUIError('TASK_RUNNING', 'Cannot delete running task', 400);
+    if (existingTask.status === "running") {
+      throw new CUIError("TASK_RUNNING", "Cannot delete running task", 400);
     }
 
     try {
       this.deleteTaskStmt.run(id);
-      this.logger.debug('Deleted task', { id, title: existingTask.title });
+      this.logger.debug("Deleted task", { id, title: existingTask.title });
     } catch (error) {
-      this.logger.error('Failed to delete task', error);
-      throw new CUIError('TASK_DELETE_FAILED', `Failed to delete task: ${error instanceof Error ? error.message : String(error)}`, 500);
+      this.logger.error("Failed to delete task", error);
+      throw new CUIError(
+        "TASK_DELETE_FAILED",
+        `Failed to delete task: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
   async reorderTasks(queueId: string, taskIds: string[]): Promise<TaskQueue> {
     if (!this.isInitialized) {
-      throw new CUIError('SERVICE_NOT_INITIALIZED', 'TaskQueueService not initialized', 500);
+      throw new CUIError(
+        "SERVICE_NOT_INITIALIZED",
+        "TaskQueueService not initialized",
+        500
+      );
     }
 
     const queue = await this.getQueueById(queueId);
     if (!queue) {
-      throw new CUIError('QUEUE_NOT_FOUND', 'Task queue not found', 404);
+      throw new CUIError("QUEUE_NOT_FOUND", "Task queue not found", 404);
     }
 
     // Don't allow reordering of running queues
-    if (queue.status === 'running') {
-      throw new CUIError('QUEUE_RUNNING', 'Cannot reorder tasks in running queue', 400);
+    if (queue.status === "running") {
+      throw new CUIError(
+        "QUEUE_RUNNING",
+        "Cannot reorder tasks in running queue",
+        400
+      );
     }
 
     // Verify all task IDs belong to this queue
-    const existingTaskIds = queue.tasks.map(t => t.id);
-    const invalidIds = taskIds.filter(id => !existingTaskIds.includes(id));
+    const existingTaskIds = queue.tasks.map((t) => t.id);
+    const invalidIds = taskIds.filter((id) => !existingTaskIds.includes(id));
     if (invalidIds.length > 0) {
-      throw new CUIError('INVALID_TASK_IDS', `Invalid task IDs: ${invalidIds.join(', ')}`, 400);
+      throw new CUIError(
+        "INVALID_TASK_IDS",
+        `Invalid task IDs: ${invalidIds.join(", ")}`,
+        400
+      );
     }
 
     if (taskIds.length !== existingTaskIds.length) {
-      throw new CUIError('INCOMPLETE_TASK_LIST', 'Task list must include all tasks in the queue', 400);
+      throw new CUIError(
+        "INCOMPLETE_TASK_LIST",
+        "Task list must include all tasks in the queue",
+        400
+      );
     }
 
     const now = new Date().toISOString();
@@ -678,29 +852,49 @@ export class TaskQueueService extends EventEmitter {
 
       const updatedQueue = await this.getQueueById(queueId);
       if (!updatedQueue) {
-        throw new CUIError('QUEUE_UPDATE_FAILED', 'Failed to update queue after reordering', 500);
+        throw new CUIError(
+          "QUEUE_UPDATE_FAILED",
+          "Failed to update queue after reordering",
+          500
+        );
       }
 
-      this.logger.debug('Reordered tasks', { queueId, taskIds });
+      this.logger.debug("Reordered tasks", { queueId, taskIds });
       return updatedQueue;
     } catch (error) {
-      this.logger.error('Failed to reorder tasks', error);
+      this.logger.error("Failed to reorder tasks", error);
       if (error instanceof CUIError) {
         throw error;
       }
-      throw new CUIError('TASK_REORDER_FAILED', `Failed to reorder tasks: ${error instanceof Error ? error.message : String(error)}`, 500);
+      throw new CUIError(
+        "TASK_REORDER_FAILED",
+        `Failed to reorder tasks: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
   // Internal methods for queue execution (will be used by execution service)
-  async updateQueueStatus(id: string, status: TaskQueue['status'], currentTaskIndex?: number, startedAt?: string, completedAt?: string): Promise<void> {
+  async updateQueueStatus(
+    id: string,
+    status: TaskQueue["status"],
+    currentTaskIndex?: number,
+    startedAt?: string,
+    completedAt?: string
+  ): Promise<void> {
     if (!this.isInitialized) {
-      throw new CUIError('SERVICE_NOT_INITIALIZED', 'TaskQueueService not initialized', 500);
+      throw new CUIError(
+        "SERVICE_NOT_INITIALIZED",
+        "TaskQueueService not initialized",
+        500
+      );
     }
 
     const existingQueue = await this.getQueueById(id);
     if (!existingQueue) {
-      throw new CUIError('QUEUE_NOT_FOUND', 'Task queue not found', 404);
+      throw new CUIError("QUEUE_NOT_FOUND", "Task queue not found", 404);
     }
 
     const now = new Date().toISOString();
@@ -717,26 +911,51 @@ export class TaskQueueService extends EventEmitter {
         completed_at: completedAt || existingQueue.completedAt || null,
       });
 
-      this.logger.debug('Updated queue status', { id, status, currentTaskIndex });
+      this.logger.debug("Updated queue status", {
+        id,
+        status,
+        currentTaskIndex,
+      });
     } catch (error) {
-      this.logger.error('Failed to update queue status', error);
-      throw new CUIError('QUEUE_STATUS_UPDATE_FAILED', `Failed to update queue status: ${error instanceof Error ? error.message : String(error)}`, 500);
+      this.logger.error("Failed to update queue status", error);
+      throw new CUIError(
+        "QUEUE_STATUS_UPDATE_FAILED",
+        `Failed to update queue status: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
-  async updateTaskStatus(id: string, status: Task['status'], sessionId?: string, streamingId?: string, error?: string, startedAt?: string, completedAt?: string): Promise<void> {
+  async updateTaskStatus(
+    id: string,
+    status: Task["status"],
+    sessionId?: string,
+    streamingId?: string,
+    error?: string,
+    startedAt?: string,
+    completedAt?: string
+  ): Promise<void> {
     if (!this.isInitialized) {
-      throw new CUIError('SERVICE_NOT_INITIALIZED', 'TaskQueueService not initialized', 500);
+      throw new CUIError(
+        "SERVICE_NOT_INITIALIZED",
+        "TaskQueueService not initialized",
+        500
+      );
     }
 
     const existingTask = await this.getTaskById(id);
     if (!existingTask) {
-      throw new CUIError('TASK_NOT_FOUND', 'Task not found', 404);
+      throw new CUIError("TASK_NOT_FOUND", "Task not found", 404);
     }
 
     const now = new Date().toISOString();
 
     try {
+      const finalSessionId = sessionId || existingTask.sessionId || null;
+      const finalStreamingId = streamingId || existingTask.streamingId || null;
+
       this.updateTaskStmt.run({
         id,
         title: existingTask.title,
@@ -744,18 +963,23 @@ export class TaskQueueService extends EventEmitter {
         type: existingTask.type,
         order_index: existingTask.order,
         status,
-        session_id: sessionId || existingTask.sessionId || null,
-        streaming_id: streamingId || existingTask.streamingId || null,
+        session_id: finalSessionId,
+        streaming_id: finalStreamingId,
         error: error || null,
         updated_at: now,
         started_at: startedAt || existingTask.startedAt || null,
         completed_at: completedAt || existingTask.completedAt || null,
       });
 
-      this.logger.debug('Updated task status', { id, status, sessionId, streamingId });
+      this.logger.debug("Updated task status", {
+        id,
+        status,
+        sessionId,
+        streamingId,
+      });
 
       // Emit task status change event for real-time updates
-      this.emit('taskStatusChanged', {
+      this.emit("taskStatusChanged", {
         taskId: id,
         queueId: existingTask.queueId,
         status,
@@ -764,15 +988,21 @@ export class TaskQueueService extends EventEmitter {
         error,
       });
     } catch (error) {
-      this.logger.error('Failed to update task status', error);
-      throw new CUIError('TASK_STATUS_UPDATE_FAILED', `Failed to update task status: ${error instanceof Error ? error.message : String(error)}`, 500);
+      this.logger.error("Failed to update task status", error);
+      throw new CUIError(
+        "TASK_STATUS_UPDATE_FAILED",
+        `Failed to update task status: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        500
+      );
     }
   }
 
   async close(): Promise<void> {
     if (this.db) {
       this.db.close();
-      this.logger.debug('Database connection closed');
+      this.logger.debug("Database connection closed");
     }
   }
 }
